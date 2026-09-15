@@ -143,13 +143,23 @@ def fit_lattice(
     hkl_list = apply_selection_rule(hkl_list_all, selection_rule)
     
     if lattice_type == "cubic":
-        res = minimize_scalar(
-            lambda a: objective(np.array([a]), d_obs, hkl_list, lattice_type),
-            bounds=a_bounds,
-            method='bounded'
-        )
-        best_params = np.array([res.x])
-        best_residual = res.fun
+        best_params = None
+        best_residual = float('inf')
+        
+        # Use a finer grid for 1D to ensure we don't miss the global minimum
+        a_vals = np.linspace(a_bounds[0], a_bounds[1], n_grid * 5)
+        
+        for a0 in a_vals:
+            res = minimize(
+                objective,
+                x0=np.array([a0]),
+                args=(d_obs, hkl_list, lattice_type),
+                bounds=[a_bounds],
+                method='L-BFGS-B'
+            )
+            if res.fun < best_residual:
+                best_residual = res.fun
+                best_params = res.x
     else:
         best_params = None
         best_residual = float('inf')
