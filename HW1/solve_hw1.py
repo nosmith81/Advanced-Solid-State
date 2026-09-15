@@ -1,0 +1,329 @@
+import numpy as np
+import pandas as pd
+import itertools
+from scipy.optimize import minimize_scalar, minimize
+import matplotlib.pyplot as plt
+import os
+
+############ Data Loading
+
+def load_data(filepath: str) -> tuple[np.ndarray, np.ndarray]:
+    df = pd.read_csv(filepath)
+    return df['A'].values, df['B'].values
+
+def compute_theta(alpha: np.ndarray) -> np.ndarray:
+    return alpha / 2.0
+
+def compute_sin2theta(theta: np.ndarray) -> np.ndarray:
+    return np.sin(theta)**2
+
+# Module 2: Miller Index Generation
+
+def generate_hkl(h_max: int, k_max: int, l_max: int) -> list[tuple[int, int, int]]:
+    hkl_list = []
+    for h in range(h_max + 1):
+        for k in range(k_max + 1):
+            for l in range(l_max + 1):
+                if h == 0 and k == 0 and l == 0:
+                    continue
+                hkl_list.append((h, k, l))
+    return hkl_list
+
+def apply_selection_rule(hkl_list: list[tuple[int, int, int]], rule: str) -> list[tuple[int, int, int]]:
+    filtered_list = []
+    for h, k, l in hkl_list:
+        if rule == "all":
+            filtered_list.append((h, k, l))
+        elif rule == "bcc":
+            if (h + k + l) % 2 == 0:
+                filtered_list.append((h, k, l))
+        elif rule == "fcc":
+            is_odd = [i % 2 != 0 for i in (h, k, l)]
+            if all(is_odd) or not any(is_odd):
+                filtered_list.append((h, k, l))
+        else:
+            raise ValueError(f"Unknown rule: {rule}")
+    return filtered_list
+
+############## Predicted sin^2(theta) Calculators
+
+def sin2theta_cubic(h: int, k: int, l: int, a: float, kw: float) -> float:
+    return (np.pi**2 / (kw**2 * a**2)) * (h**2 + k**2 + l**2)
+
+def sin2theta_tetragonal(h: int, k: int, l: int, a: float, c: float, kw: float) -> float:
+    return (np.pi**2 / kw**2) * ((h**2 + k**2) / a**2 + l**2 / c**2)
+
+def sin2theta_hexagonal(h: int, k: int, l: int, a: float, c: float, kw: float) -> float:
+    return (np.pi**2 / kw**2) * ((4.0 / 3.0) * (h**2 + h*k + k**2) / a**2 + l**2 / c**2)
+
+############## Objective Function and Minimization
+
+def compute_all_predicted_sin2theta(
+    params: np.ndarray,
+    hkl_list: list[tuple[int, int, int]],
+    lattice_type: str,
+    kw: float
+) -> tuple[np.ndarray, list[tuple[int, int, int]]]:
+    
+    sin2_list = []
+    for h, k, l in hkl_list:
+        if lattice_type == "cubic":
+            a = params[0]
+            val = sin2theta_cubic(h, k, l, a, kw)
+        elif lattice_type == "tetragonal":
+            a, c = params[0], params[1]
+            val = sin2theta_tetragonal(h, k, l, a, c, kw)
+        elif lattice_type == "hexagonal":
+            a, c = params[0], params[1]
+            val = sin2theta_hexagonal(h, k, l, a, c, kw)
+        else:
+            raise ValueError(f"Unknown lattice_type: {lattice_type}")
+        sin2_list.append((val, (h, k, l)))
+    
+    # Sort and remove duplicates based on sin^2(theta) value (within some tolerance)
+    sin2_list.sort(key=lambda x: x[0])
+    
+    unique_sin2 = []
+    unique_hkl = []
+    
+    for val, hkl in sin2_list:
+        if not unique_sin2 or abs(val - unique_sin2[-1]) > 1e-10:
+            unique_sin2.append(val)
+            unique_hkl.append(hkl)
+            
+    return np.array(unique_sin2), unique_hkl
+
+def match_peaks(
+    sin2theta_obs: np.ndarray,
+    sin2theta_pred: np.ndarray,
+    hkl_sorted: list[tuple[int, int, int]]
+) -> list[dict]:
+    
+    matches = []
+    for i, s_obs in enumerate(sin2theta_obs):
+        diffs = np.abs(sin2theta_pred - s_obs)
+        best_idx = np.argmin(diffs)
+        
+        matches.append({
+            "peak_index": i,
+            "hkl": hkl_sorted[best_idx],
+            "sin2theta_obs": s_obs,
+            "sin2theta_pred": sin2theta_pred[best_idx],
+            "residual": diffs[best_idx]
+        })
+        
+    return matches
+
+def objective(
+    params: np.ndarray,
+    sin2theta_obs: np.ndarray,
+    hkl_list: list[tuple[int, int, int]],
+    lattice_type: str,
+    kw: float
+) -> float:
+    
+    sin2_pred, hkl_sorted = compute_all_predicted_sin2theta(params, hkl_list, lattice_type, kw)
+    matches = match_peaks(sin2theta_obs, sin2_pred, hkl_sorted)
+    
+    residual_sq_sum = sum(m["residual"]**2 for m in matches)
+    return residual_sq_sum
+
+def fit_lattice(
+    sin2theta_obs: np.ndarray,
+    lattice_type: str,
+    selection_rule: str,
+    kw: float,
+    h_max: int = 6,
+    k_max: int = 6,
+    l_max: int = 6,
+    a_bounds: tuple[float, float] = (1.0, 10.0),
+    c_bounds: tuple[float, float] = (1.0, 10.0),
+    n_grid: int = 10
+) -> dict:
+    
+    hkl_list_all = generate_hkl(h_max, k_max, l_max)
+    hkl_list = apply_selection_rule(hkl_list_all, selection_rule)
+    
+    if lattice_type == "cubic":
+        res = minimize_scalar(
+            lambda a: objective(np.array([a]), sin2theta_obs, hkl_list, lattice_type, kw),
+            bounds=a_bounds,
+            method='bounded'
+        )
+        best_params = np.array([res.x])
+        best_residual = res.fun
+    else:
+        best_params = None
+        best_residual = float('inf')
+        
+        a_vals = np.linspace(a_bounds[0], a_bounds[1], n_grid)
+        c_vals = np.linspace(c_bounds[0], c_bounds[1], n_grid)
+        
+        for a0 in a_vals:
+            for c0 in c_vals:
+                res = minimize(
+                    objective,
+                    x0=np.array([a0, c0]),
+                    args=(sin2theta_obs, hkl_list, lattice_type, kw),
+                    bounds=[a_bounds, c_bounds],
+                    method='L-BFGS-B'
+                )
+                if res.fun < best_residual:
+                    best_residual = res.fun
+                    best_params = res.x
+                    
+    label_map = {
+        ("cubic", "all"): "SC",
+        ("cubic", "bcc"): "BCC",
+        ("cubic", "fcc"): "FCC",
+        ("tetragonal", "all"): "P-Tet",
+        ("tetragonal", "bcc"): "BC-Tet",
+        ("hexagonal", "all"): "Hex"
+    }
+    label = label_map.get((lattice_type, selection_rule), "Unknown")
+    
+    return {
+        "params": best_params,
+        "residual": best_residual,
+        "lattice_type": lattice_type,
+        "selection_rule": selection_rule,
+        "label": label,
+        "hkl_list": hkl_list
+    }
+
+def fit_all_lattices(
+    sin2theta_obs: np.ndarray,
+    kw: float
+) -> list[dict]:
+    
+    lattice_configs = [
+        ("cubic", "all"),
+        ("cubic", "bcc"),
+        ("cubic", "fcc"),
+        ("tetragonal", "all"),
+        ("tetragonal", "bcc"),
+        ("hexagonal", "all")
+    ]
+    
+    results = []
+    for lat_type, sel_rule in lattice_configs:
+        res = fit_lattice(sin2theta_obs, lat_type, sel_rule, kw)
+        results.append(res)
+        
+    return results
+
+# ########### Plotting
+
+def plot_lattice_fit(
+    theta_obs: np.ndarray,
+    fit_result: dict,
+    kw: float,
+    crystal_label: str,
+    save_path: str | None = None
+) -> plt.Figure:
+    
+    sin2theta_obs = compute_sin2theta(theta_obs)
+    sin2_pred, hkl_sorted = compute_all_predicted_sin2theta(
+        fit_result["params"], fit_result["hkl_list"], fit_result["lattice_type"], kw
+    )
+    
+    matches = match_peaks(sin2theta_obs, sin2_pred, hkl_sorted)
+    
+    # We want theta, not sin^2(theta)
+    theta_pred_matched = np.arcsin(np.sqrt(np.clip([m["sin2theta_pred"] for m in matches], 0, 1)))
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    x_positions = np.arange(len(theta_obs))
+    x_labels = [str(m["hkl"]) for m in matches]
+    
+    ax.plot(x_positions, theta_obs, 'o-', color='blue', label='Observed $\\theta$')
+    ax.plot(x_positions, theta_pred_matched, 'x--', color='red', label='Predicted $\\theta$')
+    
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(x_labels, rotation=45, ha='right')
+    
+    ax.set_xlabel("(hkl)")
+    ax.set_ylabel("$\\theta$ (rad)")
+    
+    res = fit_result["residual"]
+    label = fit_result["label"]
+    ax.set_title(f"Crystal {crystal_label} — {label} fit (R = {res:.2e})")
+    
+    ax.legend()
+    fig.tight_layout()
+    
+    if save_path:
+        fig.savefig(save_path)
+        
+    return fig
+
+def plot_all_fits(
+    theta_obs: np.ndarray,
+    all_results: list[dict],
+    kw: float,
+    crystal_label: str,
+    save_dir: str
+) -> None:
+    
+    os.makedirs(save_dir, exist_ok=True)
+    
+    for res in all_results:
+        label = res["label"]
+        save_path = os.path.join(save_dir, f"crystal_{crystal_label}_{label}.png")
+        fig = plot_lattice_fit(theta_obs, res, kw, crystal_label, save_path)
+        plt.close(fig)
+
+# Module 6: Main Driver
+
+def main() -> None:
+    kw = 8.8581
+    
+    alpha_A, alpha_B = load_data("data.csv")
+    
+    for crystal_label, alpha in [("A", alpha_A), ("B", alpha_B)]:
+        print(f"\n{'='*50}")
+        print(f"Analyzing Crystal {crystal_label}")
+        print(f"{'='*50}")
+        
+        theta_obs = compute_theta(alpha)
+        sin2theta_obs = compute_sin2theta(theta_obs)
+        
+        all_results = fit_all_lattices(sin2theta_obs, kw)
+        all_results.sort(key=lambda x: x["residual"])
+        
+        print(f"\nSummary for Crystal {crystal_label}:")
+        print(f"{'Label':<10} | {'Lattice Type':<12} | {'a (A)':<8} | {'c (A)':<8} | {'Residual R'}")
+        print("-" * 65)
+        for res in all_results:
+            a = res["params"][0]
+            c = res["params"][1] if len(res["params"]) > 1 else np.nan
+            print(f"{res['label']:<10} | {res['lattice_type']:<12} | {a:8.4f} | {c:8.4f} | {res['residual']:.2e}")
+            
+        best = all_results[0]
+        
+        a_best = best["params"][0]
+        if len(best["params"]) > 1:
+            c_best = best["params"][1]
+            print(f"\nBest fit: {best['label']} with a = {a_best:.4f}, c = {c_best:.4f}, R = {best['residual']:.2e}")
+        else:
+            print(f"\nBest fit: {best['label']} with a = {a_best:.4f}, R = {best['residual']:.2e}")
+            
+        sin2_pred, hkl_sorted = compute_all_predicted_sin2theta(
+            best["params"], best["hkl_list"], best["lattice_type"], kw
+        )
+        matches = match_peaks(sin2theta_obs, sin2_pred, hkl_sorted)
+        
+        print(f"\nPer-peak match for {best['label']}:")
+        print(f"{'Peak':<5} | {'(hkl)':<12} | {'theta_obs (rad)':<15} | {'theta_pred (rad)':<16} | {'delta theta (rad)'}")
+        print("-" * 75)
+        for m in matches:
+            t_obs = np.arcsin(np.sqrt(np.clip(m["sin2theta_obs"], 0, 1)))
+            t_pred = np.arcsin(np.sqrt(np.clip(m["sin2theta_pred"], 0, 1)))
+            dt = abs(t_obs - t_pred)
+            print(f"{m['peak_index']+1:<5} | {str(m['hkl']):<12} | {t_obs:<15.6f} | {t_pred:<16.6f} | {dt:.2e}")
+            
+        plot_all_fits(theta_obs, all_results, kw, crystal_label, "plots")
+
+if __name__ == "__main__":
+    main()
