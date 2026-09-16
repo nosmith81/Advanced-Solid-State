@@ -17,7 +17,7 @@ def compute_theta(alpha: np.ndarray) -> np.ndarray:
 def compute_d_obs(theta: np.ndarray, kw: float) -> np.ndarray:
     return np.pi / (kw * np.sin(theta))
 
-# Module 2: Miller Index Generation
+####### Miller Index Generation
 
 def generate_hkl(h_max: int, k_max: int, l_max: int) -> list[tuple[int, int, int]]:
     hkl_list = []
@@ -281,7 +281,6 @@ def plot_all_fits(
         fig = plot_lattice_fit(theta_obs, res, kw, crystal_label, save_path)
         plt.close(fig)
 
-# Module 6: Main Driver
 
 def main() -> None:
     kw = 8.8581
