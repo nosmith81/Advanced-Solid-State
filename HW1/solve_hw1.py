@@ -285,7 +285,7 @@ def plot_all_fits(
 def main() -> None:
     kw = 8.8581
     
-    alpha_A, alpha_B = load_data("data.csv")
+    alpha_A, alpha_B = load_data("data2.csv")
     
     for crystal_label, alpha in [("A", alpha_A), ("B", alpha_B)]:
         print(f"\n{'='*50}")
