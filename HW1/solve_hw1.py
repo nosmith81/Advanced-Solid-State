@@ -41,6 +41,10 @@ def apply_selection_rule(hkl_list: list[tuple[int, int, int]], rule: str) -> lis
             is_odd = [i % 2 != 0 for i in (h, k, l)]
             if all(is_odd) or not any(is_odd):
                 filtered_list.append((h, k, l))
+        elif rule == "hcp":
+            # HCP selection rule: absent if (h + 2k) is a multiple of 3 AND l is odd
+            if not ((h + 2 * k) % 3 == 0 and l % 2 != 0):
+                filtered_list.append((h, k, l))
         else:
             raise ValueError(f"Unknown rule: {rule}")
     return filtered_list
@@ -122,9 +126,23 @@ def objective(
 ) -> float:
     
     d_pred, hkl_sorted = compute_all_predicted_d(params, hkl_list, lattice_type)
-    matches = match_peaks(d_obs, d_pred, hkl_sorted)
     
-    residual_sq_sum = sum(m["residual"]**2 for m in matches)
+    residual_sq_sum = 0.0
+    
+    # 1. Forward match: for each observed peak, find closest predicted
+    for d_o in d_obs:
+        diffs = np.abs(d_pred - d_o)
+        residual_sq_sum += np.min(diffs)**2
+        
+    # 2. Backward match: for each predicted peak in range, find closest observed
+    # This penalizes predicting peaks that don't exist in the data
+    d_min, d_max = np.min(d_obs), np.max(d_obs)
+    for d_p in d_pred:
+        # Include a tiny tolerance to account for floating point matching at the boundaries
+        if (d_min - 1e-5) <= d_p <= (d_max + 1e-5):
+            diffs = np.abs(d_obs - d_p)
+            residual_sq_sum += np.min(diffs)**2
+            
     return residual_sq_sum
 
 def fit_lattice(
@@ -186,7 +204,8 @@ def fit_lattice(
         ("cubic", "fcc"): "FCC",
         ("tetragonal", "all"): "P-Tet",
         ("tetragonal", "bcc"): "BC-Tet",
-        ("hexagonal", "all"): "Hex"
+        ("hexagonal", "all"): "Hex",
+        ("hexagonal", "hcp"): "HCP"
     }
     label = label_map.get((lattice_type, selection_rule), "Unknown")
     
@@ -209,7 +228,8 @@ def fit_all_lattices(
         ("cubic", "fcc"),
         ("tetragonal", "all"),
         ("tetragonal", "bcc"),
-        ("hexagonal", "all")
+        ("hexagonal", "all"),
+        ("hexagonal", "hcp")
     ]
     
     results = []

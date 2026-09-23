@@ -1,0 +1,238 @@
+\documentclass[oneside,12pt]{amsart}
+\usepackage{booktabs}
+
+\setlength{\vfuzz}{2mm}
+\setlength{\textwidth}{170mm}
+\setlength{\textheight}{200mm}
+\setlength{\oddsidemargin}{0pt}
+\setlength{\evensidemargin}{0pt}
+
+
+\begin{document}
+
+\begin{center}
+\large \textbf {Homework 1} \\
+\bigskip
+
+\textbf {Advanced Solid State}
+\bigskip
+
+\large \textit {Janessa Slone, Nathan Smith}
+\end{center}
+\bigskip
+
+\noindent {\bf Summary}
+\bigskip
+
+
+1.\quad \textbf{Methods} \quad
+Given experimentally measured deflection angles, $\alpha$, the interplanar spacing $d$ can be determined using Bragg's law,
+\begin{equation}
+    d = \frac{\lambda}{2sin(\theta)}
+\end{equation}
+where $\lambda$ is the wavelength of the incident X-rays and $\theta$ is the Bragg angle. The experimentally provided angles are related to the Bragg angle by 
+\begin{equation}
+     \theta = \frac{\alpha}{2}
+ \end{equation}
+
+The resulting interplanar spacings are determined by the geometry of the crystal lattice. For a given lattice structure, $d$ is related to the Miller indices $(h,k,l)$ and the lattice parameters $a$ and $c$. The relevant expressions for the cubic, tetragonal, and hexagonal crystal systems are
+
+\begin{equation}
+  \tag{Cubic}
+  \label{eq:Cubic}
+    \frac{1}{d^2} = \frac{h^2+k^2+l^2}{a^2}
+\end{equation}
+
+\begin{equation}
+    \tag{Hexagonal}
+    \label{eq:Hexagonal}
+    \frac{1}{d^2} = \frac{4}{3}\frac{h^2+hk+k^2}{a^2}+\frac{l^2}{c^2}
+\end{equation}
+
+\begin{equation}
+    \tag{Tetragonal}
+    \label{eq:Tetragonal}
+    \frac{1}{d^2} = \frac{h^2+k^2}{a^2}+\frac{l^2}{c^2}
+\end{equation}
+\\
+\textbf{Crystal A}
+The lattice structure of Crystal A was determined by comparing the experimentally measured interplanar spacings with the possible values of $h$, $k$, and $l$. Because the lattice parameters are initially unknown, we first examine the relative values of $1/d^2$. The ratios of $1/d^2$ between reflections eliminate the unknown lattice parameters and allow the possible Miller-index combinations to be identified.
+
+Specifically, the reciprocal-spacing values were calculated from the experimentally determined $d$ values and normalized to the first reflection:
+
+\begin{equation}
+R_{\mathrm{hkl}}
+=
+\frac{(1/d)^2}{(1/d_1)^2}
+=
+\frac{d_1^2}{d^2}.
+\end{equation}
+
+The resulting values for Crystal A are shown in Table~\ref{tab:crystal_A}.
+
+\begin{table}[ht]
+    \centering
+    \caption{Crystal A Parameters}
+    \label{tab:crystal_A}
+    \begin{tabular}{cccccc} % Five 'c's create 5 centered columns
+        \toprule
+        $\mathbf{\alpha}$ & $\mathbf{\theta}$ & $\mathbf{d}$ & $\mathbf{\frac{1}{d}}$ & $\mathbf{R_{\mathrm{hkl}}}$ \\
+        \midrule
+        0.351821 & 0.175910 & 2.026561 & 0.243490 & 1.000000 \\
+        0.500185 & 0.250092 & 1.432997 & 0.486978 & 1.999994 \\
+        0.615923 & 0.307961 & 1.170037 & 0.730468 & 2.999994 \\
+        0.715162 & 0.357581 & 1.013281 & 0.973959 & 3.999999 \\
+        0.804135 & 0.402068 & 0.906307 & 1.217445 & 4.999987 \\
+        0.886044 & 0.443022 & 0.827341 & 1.460935 & 5.999988 \\
+        0.962795 & 0.481397 & 0.765969 & 1.704424 & 6.999985 \\
+        1.035640 & 0.517820 & 0.716499 & 1.947911 & 7.999974 \\
+        1.105460 & 0.552730 & 0.675522 & 2.191397 & 8.999955 \\
+        1.172910 & 0.586455 & 0.640857 & 2.434884 & 9.999947 \\
+        1.238500 & 0.619250 & 0.611031 & 2.678385 & 10.999992 \\
+        1.302630 & 0.651315 & 0.585019 & 2.921865 & 11.999953 \\
+        1.365650 & 0.682825 & 0.562068 & 3.165355 & 12.999954 \\
+        1.489500 & 0.744750 & 0.523257 & 3.652323 & 14.999907 \\
+        1.550850 & 0.775425 & 0.506640 & 3.895847 & 16.000046 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The normalized ratios are approximately consecutive integers, $R_{hkl}=1,2,3,4..,13, 15,16$. This pattern suggest that the cubic system is a possible candidate. The relative values of $1/d^2$ should be proportional to $N=h^2+k^2+l^2$. 
+
+The first observed reflection has $R_{\mathrm{hkl}}\approx1$. However, the smallest possible value of $h^2+k^2+l^2$ for a nonzero reflection depends on the allowed reflections of the particular cubic lattice. Multiplying the normalized ratios by 2 gives N = 2,4,6,8,10,12,14,16,18,20,22,24,26,30,32.
+
+These values can be compared with the reflection conditions for the three cubic Bravais lattices. For a body-centered cubic (BCC) lattice, reflections are allowed when $h+k+l$ give an even integer. The Miller-index combinations for values in N satisfy this requirement, for example:
+
+\[
+\begin{aligned}
+N=2 &\rightarrow (110),\\
+N=4 &\rightarrow (200),\\
+N=6 &\rightarrow (211),
+\end{aligned}
+\]
+
+and so forth. \textbf{The observed sequence is therefore consistent with a BCC lattice.} Though $N=28$ is not present, this does not contradict the BCC classification because $N=28$ can not be expressed with any integer Miller indices. From the interplanar spacing and Miller indices, we can solve the below equation for the corresponding lattice parameter.
+
+\begin{equation}
+    a = d(h+k+l)
+\end{equation}
+
+The resulting lattice parameter is \textbf{a = 2.8660 \text{\AA}}. The element corresponding with this lattice structure and lattice parameter is \textbf{Iron}.
+
+\vspace{\baselineskip}
+\textbf{Crystal B}
+The lattice structure of Crystal B was first investigated by comparing the normalized values of $1/d^2$ with the expected reflection sequences for the cubic lattice systems. Unlike Crystal A, Crystal B does not exhibit the integer sequence expected for a cubic lattice. Therefore, the cubic crystal systems can be ruled out, leaving the hexagonal and tetragonal crystal systems as the remaining possibilities.
+
+\begin{table}[ht]
+    \centering
+    \caption{Crystal B Parameters}
+    \label{tab:crystal_B}
+    \begin{tabular}{cccccc} % Five 'c's create 5 centered columns
+        \toprule
+        $\mathbf{\alpha}$ & $\mathbf{\theta}$ & $\mathbf{d}$ & $\mathbf{\frac{1}{d}}$ & $\mathbf{R_{\mathrm{hkl}}}$ \\
+        \midrule
+        0.287817 & 0.143908 & 2.472993 & 0.163514 & 1.000000 \\
+        0.309260 & 0.154630 & 2.302754 & 0.188584 & 1.153322 \\
+        0.341434 & 0.170717 & 2.087585 & 0.229463 & 1.403323 \\
+        0.424062 & 0.212031 & 1.685268 & 0.352097 & 2.153317 \\
+        0.535513 & 0.267757 & 1.340513 & 0.556491 & 3.403327 \\
+        0.540061 & 0.270031 & 1.329497 & 0.565751 & 3.459962 \\
+        0.581821 & 0.290911 & 1.236497 & 0.654055 & 4.000000 \\
+        0.615399 & 0.307700 & 1.171001 & 0.729265 & 4.459961 \\
+        0.626241 & 0.313121 & 1.151378 & 0.754335 & 4.613284 \\
+        0.643580 & 0.321790 & 1.121393 & 0.795214 & 4.863288 \\
+        0.663206 & 0.331603 & 1.089380 & 0.842638 & 5.153318 \\
+        0.693361 & 0.346681 & 1.043793 & 0.917849 & 5.613282 \\
+        0.770325 & 0.385163 & 0.943967 & 1.122241 & 6.863286 \\
+        0.801722 & 0.400861 & 0.908886 & 1.210545 & 7.403324 \\
+        0.804959 & 0.402479 & 0.905430 & 1.219805 & 7.459958 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Unlike the cubic case, both $a$ and $c$ are unknown and must be determined simultaneously. Therefore, the Miller indices cannot be identified simply by examining the normalized values of $1/d^2$. Instead, candidate Miller-index assignments can be tested by using pairs of observed reflections.
+
+The smallest observed interplanar spacing is $d_1 = 0.163514\ \text{\AA}$ corresponding to the largest observed value of $1/d^2$. Candidate Miller indices are assigned to the observed reflections, beginning with the lowest-order allowed reflections. For each proposed assignment, the equations for two reflections can be combined to eliminate the overall scale of the lattice and determine the ratio of the lattice parameters. For example, suppose the first two reflections are assigned as $(001)$ and $(100)$. For a hexagonal lattice, these assignments give
+
+\begin{equation}
+\frac{1}{d_{001}^2}=\frac{1}{c^2}
+\end{equation}
+
+and
+
+\begin{equation}
+\frac{1}{d_{100}^2}=\frac{4}{3a^2}.
+\end{equation}
+
+Taking the ratio of these two equations gives
+
+\begin{equation}
+\frac{(1/d_{001}^2)}{(1/d_{100}^2)}\frac{4}{3}\frac{a^2}{c^2}.
+\end{equation}
+
+Thus,
+
+\begin{equation}
+\frac{c^2}{a^2}\frac{4}{3}\frac{d_{001}^2}{d_{100}^2}.
+\end{equation}
+
+This provides a test for the proposed $(001)$ and $(100)$ assignments. Once a value of $c^2/a^2$ is obtained, the remaining reflections can be tested to determine whether the same ratio consistently reproduces the experimentally observed interplanar spacings.
+
+This procedure is repeated for different possible assignments of $(h,k,l)$ to the first two reflections and for both the hexagonal crystal systems. The correct lattice structure and Miller-index assignments should produce a single consistent set of lattice parameters that reproduces all of the observed diffraction peaks.
+
+After testing the possible Miller-index assignments, the first and second diffraction peaks were identified as $(002)$ and $(100)$, respectively. With these Miller indices established, the lattice parameters $a$ and $c$ can be determined independently from the corresponding interplanar spacings.
+
+For the first reflection, $(002)$, the hexagonal lattice equation becomes
+
+\begin{equation}
+\frac{1}{d_{002}^2}\frac{4}{c^2},
+\end{equation}
+
+which can be rearranged to give
+
+\begin{equation}
+c = 2d_{002}.
+\end{equation}
+
+For the second reflection, $(100)$, the equation becomes
+
+\begin{equation}
+\frac{1}{d_{100}^2}\frac{4}{3a^2},
+\end{equation}
+
+giving
+
+\begin{equation}
+a = \frac{2d_{100}}{\sqrt{3}}.
+\end{equation}
+
+Using the experimentally determined interplanar spacings for these two reflections gives
+
+\begin{equation}
+\textbf{a = 2.6589\ \text{\AA}},
+\qquad
+\textbf{c = 4.946\ \text{\AA}}.
+\end{equation}
+
+These lattice parameters can then be used in the hexagonal interplanar-spacing equation to predict the positions of the remaining diffraction peaks. Agreement between the calculated and experimentally observed peak positions provides a consistency check for both the hexagonal lattice assignment and the corresponding Miller indices. The experimentally observed reflections can be consistently indexed using the HCP-allowed Miller indices. In particular, the first two reflections are indexed as $(002)$ and $(100)$, followed by the higher-order allowed reflections. The agreement between the calculated and measured peak positions, together with the systematic absence of reflections that are not permitted by the HCP structure, provides evidence that Crystal B has an HCP structure.
+
+Therefore, \textbf{Crystal B is identified as a hexagonal close-packed crystal.} The element corresponding with this lattice structure and lattice parameter is \textbf{Zinc}.
+
+
+
+\bigskip
+\bigskip
+\bigskip
+\bigskip
+\bigskip
+
+
+2.\quad \textbf{Results} \quad {\it{Table of our answers (crystal structure, lattice parameters, point group symms, and elements).}}
+
+\bigskip
+\bigskip
+\bigskip
+\bigskip
+
+
+\end{document}

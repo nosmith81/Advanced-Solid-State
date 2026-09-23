@@ -9,7 +9,7 @@ Label      | Lattice Type | a (A)    | c (A)    | Residual R
 FCC        | cubic        |   4.0780 |      nan | 3.32e-11
 BC-Tet     | tetragonal   |   2.8836 |   4.0780 | 3.14e-10
 Hex        | hexagonal    |   2.7648 |   2.0258 | 2.57e-02
-HCP        | hexagonal    |   2.7838 |   4.0502 | 2.92e-02
+Unknown    | hexagonal    |   2.7838 |   4.0502 | 2.92e-02
 P-Tet      | tetragonal   |   4.5545 |   1.0416 | 6.85e-02
 BCC        | cubic        |   2.9665 |      nan | 8.37e-02
 SC         | cubic        |   2.1034 |      nan | 8.53e-02
@@ -42,7 +42,7 @@ Analyzing Crystal B
 Summary for Crystal B:
 Label      | Lattice Type | a (A)    | c (A)    | Residual R
 -----------------------------------------------------------------
-HCP        | hexagonal    |   3.2090 |   5.2110 | 6.13e-11
+Unknown    | hexagonal    |   3.2090 |   5.2110 | 6.13e-11
 BC-Tet     | tetragonal   |   3.7679 |   3.2329 | 2.62e-02
 P-Tet      | tetragonal   |   2.7862 |   5.1745 | 2.95e-02
 Hex        | hexagonal    |   5.7346 |   1.0510 | 4.31e-02
@@ -50,9 +50,9 @@ FCC        | cubic        |   5.2692 |      nan | 7.42e-02
 BCC        | cubic        |   3.7328 |      nan | 8.30e-02
 SC         | cubic        |   2.6358 |      nan | 8.42e-02
 
-Best fit: HCP with a = 3.2090, c = 5.2110, R = 6.13e-11
+Best fit: Unknown with a = 3.2090, c = 5.2110, R = 6.13e-11
 
-Per-peak match for HCP:
+Per-peak match for Unknown:
 Peak  | (hkl)        | theta_obs (rad) | theta_pred (rad) | delta theta (rad)
 ---------------------------------------------------------------------------
 1     | (0, 1, 0)    | 0.127967        | 0.127966         | 1.07e-07
