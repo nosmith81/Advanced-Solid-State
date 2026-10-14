@@ -1,34 +1,62 @@
-\documentclass[oneside,12pt]{amsart}
+\documentclass[12pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
 \usepackage{booktabs}
-
-\setlength{\vfuzz}{2mm}
-\setlength{\textwidth}{170mm}
-\setlength{\textheight}{200mm}
-\setlength{\oddsidemargin}{0pt}
-\setlength{\evensidemargin}{0pt}
-
+\usepackage{array}
 
 \begin{document}
 
-\begin{center}
-\large \textbf {Homework 1} \\
-\bigskip
+\title{\textbf{Homework 1}\\[0.5ex] \large Advanced Solid State}
+\author{Janessa Slone \and Nathan Smith}
+\date{}
+\maketitle
 
-\textbf {Advanced Solid State}
-\bigskip
-
-\large \textit {Janessa Slone, Nathan Smith}
-\end{center}
-\bigskip
-
-\noindent {\bf Summary}
-\bigskip
+\section{Overview}
 
 
-1.\quad \textbf{Methods} \quad
+Given a set of Bragg reflection angles (see Tables~\ref{tab:crystal_A} and \ref{tab:crystal_B}), we determine the corresponding crystal structure and lattice parameters. 
+We find that Crystal A is a \textbf{BCC Lattice} with a lattice parameter of \textbf{a = 2.8660 \text{\AA}}, which corresponds to the chemical element \textbf{Iron}. 
+The second set of data, corresponding to Crystal B, was found to be a \textbf{hexagonal close-packed lattice} with parameters $\textbf{a = 2.6589\ \text{\AA}}$ and $\textbf{c = 4.9460\ \text{\AA}}$. 
+This corresponds to the chemical element \textbf{Zinc}. See the relevant subsections on the symmetries of these elements. 
+These elements were determined by hand and with computational simulation and yielded agreeing results. 
+
+\section{Symmetries}
+
+\subsection{Iron}
+
+Since Iron is a BCC lattice, it contains four 3-fold axes, 
+and three 4-fold axes with additional mirror planes perpendicular to the 4-fold axes. 
+Therefore, it belongs to the $O_h$ point group, which contains a total of 48 symmetry operations including inversion. The 48 operations (the order of the group) are divided into the following classes:
+\begin{itemize}
+    \item $E$ (Identity): 1 operation
+    \item $C_{4}$ axes: 6 operations
+    \item $C_{3}$ axes: 8 operations
+    \item $C_{2}$ axes: 9 operations
+    \item Inversion ($i$): 1 operation
+    \item $S_{4}$ axes: 6 operations
+    \item $S_{6}$ axes: 8 operations
+    \item Mirror planes ($\sigma$): 9 operations
+\end{itemize}
+
+\subsection{Zinc}
+
+The $D_{3h}$ point group has 12 symmetry operations (the order of the group is 12). The 12 operations are divided into 6 distinct classes:
+\begin{itemize}
+    \item $E$ (Identity): 1 operation
+    \item $C_{3}$ axes: 2 operations
+    \item $C_{2}$ axes: 3 operations
+    \item $\sigma_{h}$ mirror plane: 1 operation
+    \item $S_{3}$ axes: 2 operations
+    \item $\sigma_{v}$ mirror planes: 3 operations
+\end{itemize}
+
+
+
+
+\section{Methods}
 Given experimentally measured deflection angles, $\alpha$, the interplanar spacing $d$ can be determined using Bragg's law,
 \begin{equation}
-    d = \frac{\lambda}{2sin(\theta)}
+    d = \frac{\lambda}{2\sin(\theta)}
 \end{equation}
 where $\lambda$ is the wavelength of the incident X-rays and $\theta$ is the Bragg angle. The experimentally provided angles are related to the Bragg angle by 
 \begin{equation}
@@ -54,8 +82,82 @@ The resulting interplanar spacings are determined by the geometry of the crystal
     \label{eq:Tetragonal}
     \frac{1}{d^2} = \frac{h^2+k^2}{a^2}+\frac{l^2}{c^2}
 \end{equation}
-\\
-\textbf{Crystal A}
+
+
+\subsection{Computational Simulation}
+To evaluate candidate crystal structures computationally, all integer triples $(h, k, l)$ with $0 \le h, k, l \le 6$ (excluding the origin $(0, 0, 0)$) are generated, corresponding to $h_{\max} = k_{\max} = l_{\max} = 6$. Candidate reflections are then filtered according to the crystallographic structure factor selection rules summarized in Table~\ref{tab:selection_rules}.
+
+\begin{table}[ht]
+    \centering
+    \caption{Crystallographic Selection Rules for Candidate Lattice Systems}
+    \label{tab:selection_rules}
+    \begin{tabular}{ll>{\raggedright\arraybackslash}p{6.2cm}}
+        \toprule
+        \textbf{System} & \textbf{Structure (Label)} & \textbf{Allowed Reflection Condition} \\
+        \midrule
+        Cubic & Simple Cubic (SC) & All $(h, k, l)$ allowed \\
+        Cubic & Body-Centered Cubic (BCC) & Only $(h, k, l)$ where $h + k + l$ is even \\
+        Cubic & Face-Centered Cubic (FCC) & Only $(h, k, l)$ of identical parity (all even or all odd) \\
+        Tetragonal & Primitive Tetragonal (P-Tet) & All $(h, k, l)$ allowed \\
+        Tetragonal & Body-Centered Tetragonal (BC-Tet) & Only $h + k + l$ is even \\
+        Hexagonal & Simple Hexagonal (Hex) & All $(h, k, l)$ allowed \\
+        Hexagonal & Hexagonal Close-Packed (HCP) & Reflections absent if $(h + 2k) \equiv 0 \pmod 3$ and $l$ is odd; all others allowed \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The predicted interplanar distances can be calculated within a minimization routine where the 
+objective function computes the residual:
+\begin{equation}
+R = \sum_{d_o \in d_{\text{obs}}} \min_{d_p \in d_{\text{pred}}} |d_p - d_o|^2  + \sum_{d_p \in [d_{\min}, d_{\max}]} \min_{d_o \in d_{\text{obs}}} |d_o - d_p|^2
+\end{equation}
+
+where $d_{\text{pred}}$ is the set of predicted interplanar distances, and $d_{\text{obs}}$ is the set of "observed" interplanar distances computed with Bragg's law.
+The resulting optimization residuals and fitted lattice parameters for all candidate crystal structures are summarized in Table~\ref{tab:residuals}.
+
+\begin{table}[ht]
+    \centering
+    \caption{Optimization Fit Residuals for Candidate Lattice Structures}
+    \label{tab:residuals}
+    \textbf{Crystal A}\\[0.5ex]
+    \begin{tabular}{llccc}
+        \toprule
+        \textbf{Structure} & \textbf{Lattice Type} & $\mathbf{a}$ (\AA) & $\mathbf{c}$ (\AA) & \textbf{Residual $R$} \\
+        \midrule
+        BCC & Cubic & 2.8660 & -- & $2.29 \times 10^{-11}$ \\
+        BC-Tet & Tetragonal & 2.8660 & 2.8660 & $1.92 \times 10^{-10}$ \\
+        SC & Cubic & 2.0315 & -- & $3.01 \times 10^{-3}$ \\
+        FCC & Cubic & 4.0362 & -- & $3.90 \times 10^{-3}$ \\
+        P-Tet & Tetragonal & 2.0000 & 2.0000 & $7.14 \times 10^{-3}$ \\
+        HCP & Hexagonal & 1.6833 & 4.0509 & $1.20 \times 10^{-2}$ \\
+        Hex & Hexagonal & 1.6826 & 4.0981 & $1.75 \times 10^{-2}$ \\
+        \bottomrule
+    \end{tabular}
+
+    \vspace{1.2em}
+
+    \textbf{Crystal B}\\[0.5ex]
+    \begin{tabular}{llccc}
+        \toprule
+        \textbf{Structure} & \textbf{Lattice Type} & $\mathbf{a}$ (\AA) & $\mathbf{c}$ (\AA) & \textbf{Residual $R$} \\
+        \midrule
+        HCP & Hexagonal & 2.6590 & 4.9460 & $1.28 \times 10^{-11}$ \\
+        Hex & Hexagonal & 2.6635 & 4.9492 & $5.43 \times 10^{-3}$ \\
+        BC-Tet & Tetragonal & 2.3352 & 4.8427 & $3.12 \times 10^{-2}$ \\
+        P-Tet & Tetragonal & 2.4928 & 6.8396 & $5.17 \times 10^{-2}$ \\
+        SC & Cubic & 4.0655 & -- & $6.17 \times 10^{-2}$ \\
+        BCC & Cubic & 4.9183 & -- & $7.13 \times 10^{-2}$ \\
+        FCC & Cubic & 6.9383 & -- & $7.26 \times 10^{-2}$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+From Table~\ref{tab:residuals}, the structure and lattice parameters are determined by the row with the least residual. 
+Crystal A has two low-residual entries, both corresponding to the same lattice structure. 
+The HCP structure in the results for Crystal B shows a residual approximately 8 orders of magnitude smaller than the next entry, 
+clearly showing that an HCP lattice with the parameters indicated in the table is the correct structure. 
+
+\subsection{Crystal A (By Hand)}
 The lattice structure of Crystal A was determined by comparing the experimentally measured interplanar spacings with the possible values of $h$, $k$, and $l$. Because the lattice parameters are initially unknown, we first examine the relative values of $1/d^2$. The ratios of $1/d^2$ between reflections eliminate the unknown lattice parameters and allow the possible Miller-index combinations to be identified.
 
 Specifically, the reciprocal-spacing values were calculated from the experimentally determined $d$ values and normalized to the first reflection:
@@ -74,9 +176,9 @@ The resulting values for Crystal A are shown in Table~\ref{tab:crystal_A}.
     \centering
     \caption{Crystal A Parameters}
     \label{tab:crystal_A}
-    \begin{tabular}{cccccc} % Five 'c's create 5 centered columns
+    \begin{tabular}{ccccc}
         \toprule
-        $\mathbf{\alpha}$ & $\mathbf{\theta}$ & $\mathbf{d}$ & $\mathbf{\frac{1}{d}}$ & $\mathbf{R_{\mathrm{hkl}}}$ \\
+        $\mathbf{\alpha}$ & $\mathbf{\theta}$ & $\mathbf{d}$ & $\mathbf{\frac{1}{d^2}}$ & $\mathbf{R_{\mathrm{hkl}}}$ \\
         \midrule
         0.351821 & 0.175910 & 2.026561 & 0.243490 & 1.000000 \\
         0.500185 & 0.250092 & 1.432997 & 0.486978 & 1.999994 \\
@@ -97,11 +199,12 @@ The resulting values for Crystal A are shown in Table~\ref{tab:crystal_A}.
     \end{tabular}
 \end{table}
 
-The normalized ratios are approximately consecutive integers, $R_{hkl}=1,2,3,4..,13, 15,16$. This pattern suggest that the cubic system is a possible candidate. The relative values of $1/d^2$ should be proportional to $N=h^2+k^2+l^2$. 
+The normalized ratios are approximately consecutive integers, $R_{\mathrm{hkl}} = 1, 2, 3, 4, \dots, 16$. 
+This pattern suggests that the cubic system is a possible candidate. The relative values of $1/d^2$ should be proportional to $N=h^2+k^2+l^2$. 
 
-The first observed reflection has $R_{\mathrm{hkl}}\approx1$. However, the smallest possible value of $h^2+k^2+l^2$ for a nonzero reflection depends on the allowed reflections of the particular cubic lattice. Multiplying the normalized ratios by 2 gives N = 2,4,6,8,10,12,14,16,18,20,22,24,26,30,32.
+The first observed reflection has $R_{\mathrm{hkl}}\approx1$. However, the smallest possible value of $h^2+k^2+l^2$ for a nonzero reflection depends on the allowed reflections of the particular cubic lattice. Multiplying the normalized ratios by 2 gives $N = 2, 4, 6, 8, \dots, 26, 30, 32$.
 
-These values can be compared with the reflection conditions for the three cubic Bravais lattices. For a body-centered cubic (BCC) lattice, reflections are allowed when $h+k+l$ give an even integer. The Miller-index combinations for values in N satisfy this requirement, for example:
+These values can be compared with the reflection conditions for the three cubic Bravais lattices. For a body-centered cubic (BCC) lattice, reflections are allowed when $h+k+l$ gives an even integer. The Miller-index combinations for values in N satisfy this requirement, for example:
 
 \[
 \begin{aligned}
@@ -111,25 +214,24 @@ N=6 &\rightarrow (211),
 \end{aligned}
 \]
 
-and so forth. \textbf{The observed sequence is therefore consistent with a BCC lattice.} Though $N=28$ is not present, this does not contradict the BCC classification because $N=28$ can not be expressed with any integer Miller indices. From the interplanar spacing and Miller indices, we can solve the below equation for the corresponding lattice parameter.
+and so forth. \textbf{The observed sequence is therefore consistent with a BCC lattice.} Though $N=28$ is not present, this does not contradict the BCC classification because $N=28$ cannot be expressed with any integer Miller indices. From the interplanar spacing and Miller indices, we can solve the below equation for the corresponding lattice parameter.
 
 \begin{equation}
-    a = d(h+k+l)
+    a = d\sqrt{h^2+k^2+l^2}
 \end{equation}
 
 The resulting lattice parameter is \textbf{a = 2.8660 \text{\AA}}. The element corresponding with this lattice structure and lattice parameter is \textbf{Iron}.
 
-\vspace{\baselineskip}
-\textbf{Crystal B}
+\subsection{Crystal B (By Hand)}
 The lattice structure of Crystal B was first investigated by comparing the normalized values of $1/d^2$ with the expected reflection sequences for the cubic lattice systems. Unlike Crystal A, Crystal B does not exhibit the integer sequence expected for a cubic lattice. Therefore, the cubic crystal systems can be ruled out, leaving the hexagonal and tetragonal crystal systems as the remaining possibilities.
 
 \begin{table}[ht]
     \centering
     \caption{Crystal B Parameters}
     \label{tab:crystal_B}
-    \begin{tabular}{cccccc} % Five 'c's create 5 centered columns
+    \begin{tabular}{ccccc}
         \toprule
-        $\mathbf{\alpha}$ & $\mathbf{\theta}$ & $\mathbf{d}$ & $\mathbf{\frac{1}{d}}$ & $\mathbf{R_{\mathrm{hkl}}}$ \\
+        $\mathbf{\alpha}$ & $\mathbf{\theta}$ & $\mathbf{d}$ & $\mathbf{\frac{1}{d^2}}$ & $\mathbf{R_{\mathrm{hkl}}}$ \\
         \midrule
         0.287817 & 0.143908 & 2.472993 & 0.163514 & 1.000000 \\
         0.309260 & 0.154630 & 2.302754 & 0.188584 & 1.153322 \\
@@ -152,7 +254,7 @@ The lattice structure of Crystal B was first investigated by comparing the norma
 
 Unlike the cubic case, both $a$ and $c$ are unknown and must be determined simultaneously. Therefore, the Miller indices cannot be identified simply by examining the normalized values of $1/d^2$. Instead, candidate Miller-index assignments can be tested by using pairs of observed reflections.
 
-The smallest observed interplanar spacing is $d_1 = 0.163514\ \text{\AA}$ corresponding to the largest observed value of $1/d^2$. Candidate Miller indices are assigned to the observed reflections, beginning with the lowest-order allowed reflections. For each proposed assignment, the equations for two reflections can be combined to eliminate the overall scale of the lattice and determine the ratio of the lattice parameters. For example, suppose the first two reflections are assigned as $(001)$ and $(100)$. For a hexagonal lattice, these assignments give
+The first observed reflection has the largest interplanar spacing, $d_1 = 2.4730\ \text{\AA}$, corresponding to the smallest reciprocal spacing, $(1/d_1)^2 = 0.163514\ \text{\AA}^{-2}$. Candidate Miller indices are assigned to the observed reflections, beginning with the lowest-order allowed reflections. For each proposed assignment, the equations for two reflections can be combined to eliminate the overall scale of the lattice and determine the ratio of the lattice parameters. For example, suppose the first two reflections are assigned as $(001)$ and $(100)$. For a hexagonal lattice, these assignments give
 
 \begin{equation}
 \frac{1}{d_{001}^2}=\frac{1}{c^2}
@@ -167,13 +269,13 @@ and
 Taking the ratio of these two equations gives
 
 \begin{equation}
-\frac{(1/d_{001}^2)}{(1/d_{100}^2)}\frac{4}{3}\frac{a^2}{c^2}.
+\frac{1/d_{001}^2}{1/d_{100}^2} = \frac{3}{4}\frac{a^2}{c^2}.
 \end{equation}
 
 Thus,
 
 \begin{equation}
-\frac{c^2}{a^2}\frac{4}{3}\frac{d_{001}^2}{d_{100}^2}.
+\frac{c^2}{a^2} = \frac{3}{4}\frac{d_{001}^2}{d_{100}^2}.
 \end{equation}
 
 This provides a test for the proposed $(001)$ and $(100)$ assignments. Once a value of $c^2/a^2$ is obtained, the remaining reflections can be tested to determine whether the same ratio consistently reproduces the experimentally observed interplanar spacings.
@@ -185,7 +287,7 @@ After testing the possible Miller-index assignments, the first and second diffra
 For the first reflection, $(002)$, the hexagonal lattice equation becomes
 
 \begin{equation}
-\frac{1}{d_{002}^2}\frac{4}{c^2},
+\frac{1}{d_{002}^2} = \frac{4}{c^2},
 \end{equation}
 
 which can be rearranged to give
@@ -197,7 +299,7 @@ c = 2d_{002}.
 For the second reflection, $(100)$, the equation becomes
 
 \begin{equation}
-\frac{1}{d_{100}^2}\frac{4}{3a^2},
+\frac{1}{d_{100}^2} = \frac{4}{3a^2},
 \end{equation}
 
 giving
@@ -211,28 +313,17 @@ Using the experimentally determined interplanar spacings for these two reflectio
 \begin{equation}
 \textbf{a = 2.6589\ \text{\AA}},
 \qquad
-\textbf{c = 4.946\ \text{\AA}}.
+\textbf{c = 4.9460\ \text{\AA}}.
 \end{equation}
 
-These lattice parameters can then be used in the hexagonal interplanar-spacing equation to predict the positions of the remaining diffraction peaks. Agreement between the calculated and experimentally observed peak positions provides a consistency check for both the hexagonal lattice assignment and the corresponding Miller indices. The experimentally observed reflections can be consistently indexed using the HCP-allowed Miller indices. In particular, the first two reflections are indexed as $(002)$ and $(100)$, followed by the higher-order allowed reflections. The agreement between the calculated and measured peak positions, together with the systematic absence of reflections that are not permitted by the HCP structure, provides evidence that Crystal B has an HCP structure.
+These lattice parameters can then be used in the hexagonal interplanar-spacing equation to predict the positions of the remaining diffraction peaks. 
+Agreement between the calculated and experimentally observed peak positions provides a consistency check for both the hexagonal lattice assignment and the corresponding Miller indices. 
+The experimentally observed reflections can be consistently indexed using the HCP-allowed Miller indices. In particular, the first two reflections are indexed as $(002)$ and $(100)$, 
+followed by the higher-order allowed reflections. 
+The agreement between the calculated and measured peak positions, together with the systematic absence of reflections that are not permitted by the HCP structure, provides evidence 
+that Crystal B has an HCP structure.
 
 Therefore, \textbf{Crystal B is identified as a hexagonal close-packed crystal.} The element corresponding with this lattice structure and lattice parameter is \textbf{Zinc}.
-
-
-
-\bigskip
-\bigskip
-\bigskip
-\bigskip
-\bigskip
-
-
-2.\quad \textbf{Results} \quad {\it{Table of our answers (crystal structure, lattice parameters, point group symms, and elements).}}
-
-\bigskip
-\bigskip
-\bigskip
-\bigskip
 
 
 \end{document}
