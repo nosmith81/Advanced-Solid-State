@@ -189,14 +189,13 @@ def compute_bands_k_path(a_val, b_val, k_path, d0=1.0, t0=1.0, mode='NN + NNN'):
         eta_k[1, 2] = eta_k[2, 1] = val_eta_23
         t_k[1, 2] = t_k[2, 1] = val_t_23
 
-        # --- Solve eigenvalue problem ---
+        # --- Solve eigenvalue problem (User formulation: M = eps_bar + t_k @ inv(eta_k)) ---
         if neglect_overlap:
             M = eps_bar + t_k
-            energies[i] = np.sort(np.linalg.eigvalsh(M))
         else:
-            # Symmetrized Hermitian Hamiltonian
-            H_sym = 0.5 * (eps_bar @ eta_k + eta_k @ eps_bar) + t_k
-            energies[i] = solve_generalized_hermitian_spectral(H_sym, eta_k)
+            M = eps_bar + t_k @ np.linalg.inv(eta_k)
+        evals = np.linalg.eigvals(M)
+        energies[i] = np.sort(np.real(evals))
 
     return energies
 
