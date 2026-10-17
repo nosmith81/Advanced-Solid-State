@@ -161,6 +161,8 @@ def solve_square_path(a_val, path_ka, mode='Full'):
                                          t_nn, eta_nn, t_nnn, eta_nnn, eps_bar, I2, mode=mode)
     return energies
 
+solve_square_lattice = solve_square_path
+
 def solve_square_mesh(a_val, KX, KY, mode='Full'):
     eps_bar = np.array([[0.0, 0.0], [0.0, 0.8 * T0]], dtype=float)
     I2 = np.eye(2, dtype=float)
@@ -262,6 +264,8 @@ def solve_rectangular_path(a_val, b_val, k_path, mode='Full'):
         energies[i] = solve_rectangular_point(k_path[i, 0], k_path[i, 1], a_val, b_val, params_b, mode=mode)
     return energies
 
+solve_rectangular_lattice = solve_rectangular_path
+
 def solve_rectangular_mesh(a_val, b_val, KX, KY, mode='Full'):
     params_b = get_rectangular_params(a_val, b_val)
     E1 = np.zeros_like(KX)
@@ -359,7 +363,7 @@ def run_interactive():
                 path_ka, path_x, tick_locs, tick_labels = build_square_bz_path(num_seg=150)
                 for mode in active_modes:
                     st = MODE_STYLES[mode]
-                    energies = solve_square_lattice(a_val, path_ka, mode=mode)
+                    energies = solve_square_path(a_val, path_ka, mode=mode)
                     ax_2d.plot(path_x, energies[:, 0], color=st['color'], ls=st['ls'], lw=st['lw'], label=st['label'])
                     ax_2d.plot(path_x, energies[:, 1], color=st['color'], ls=st['ls'], lw=st['lw'])
 
@@ -380,7 +384,7 @@ def run_interactive():
                 k_path, path_x, tick_locs, tick_labels = build_rectangular_bz_path(a_val, b_val, num_seg=150)
                 for mode in active_modes:
                     st = MODE_STYLES[mode]
-                    energies = solve_rectangular_lattice(a_val, b_val, k_path, mode=mode)
+                    energies = solve_rectangular_path(a_val, b_val, k_path, mode=mode)
                     ax_2d.plot(path_x, energies[:, 0], color=st['color'], ls=st['ls'], lw=st['lw'], label=st['label'])
                     ax_2d.plot(path_x, energies[:, 1], color=st['color'], ls=st['ls'], lw=st['lw'])
                     ax_2d.plot(path_x, energies[:, 2], color=st['color'], ls=st['ls'], lw=st['lw'])
