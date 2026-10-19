@@ -85,10 +85,10 @@ def run_comparison():
             print(f"{mode:<15} | {max_diff:<16.5f} | {mean_diff:<16.5f} | {rms_diff:<16.5f} | Near {label_near} (Band {max_band})")
 
     # --------------------------------------------------------------------------
-    # 2. Plotting: Comprehensive 3x3 Overlay Figure
+    # 2. Plotting: Comprehensive 3x3 Overlay Figure (Individually Scaled Subplots)
     # --------------------------------------------------------------------------
-    fig, axes = plt.subplots(3, 3, figsize=(18, 14), sharey='row', sharex='col')
-    plt.subplots_adjust(hspace=0.25, wspace=0.15)
+    fig, axes = plt.subplots(3, 3, figsize=(19, 14), sharex='col')
+    plt.subplots_adjust(hspace=0.28, wspace=0.26)
 
     band_colors = ['#1f77b4', '#ff7f0e', '#2ca02c']
 
@@ -104,6 +104,10 @@ def run_comparison():
             e1 = res['e1']
             e2 = res['e2']
 
+            # Reference lines for isolated atomic orbital energies (eps_1 = 0.0, eps_2 = 0.8)
+            ax.axhline(0.0, color='gray', linestyle=':', alpha=0.35)
+            ax.axhline(0.8, color='gray', linestyle=':', alpha=0.35)
+
             # Plot Convention 2 (Solid lines)
             for b in range(3):
                 lbl2 = f"Conv 2 (Per-sublattice, Band {b+1})" if (row_idx == 0 and col_idx == 0) else None
@@ -115,7 +119,7 @@ def run_comparison():
                 ax.plot(dists, e1[:, b], color='black' if b==0 else ('#8c564b' if b==1 else '#7f7f7f'),
                         linestyle='--', linewidth=1.8, alpha=0.85, label=lbl1)
 
-            # Format axis
+            # Format axis ticks and grid
             for tick in ticks:
                 ax.axvline(tick, color='#cccccc', linestyle=':', linewidth=0.8)
             ax.set_xticks(ticks)
@@ -123,16 +127,34 @@ def run_comparison():
             ax.set_xlim(dists[0], dists[-1])
             ax.grid(True, linestyle=':', alpha=0.4)
 
-            # Titles and labels
+            # Individual y-axis scaling & singularity management
+            all_e = np.concatenate([e1.ravel(), e2.ravel()])
+            has_singularity = (np.min(all_e) < -3.0 or np.max(all_e) > 5.0)
+
+            if has_singularity:
+                # Clamp y-limits to the physical band region so bands are not squashed by divergent poles
+                ax.set_ylim(-2.0, 3.0)
+                ax.text(0.04, 0.74, 'Poles clipped to [-2, 3] $t_0$', transform=ax.transAxes,
+                        fontsize=8.5, color='#990000',
+                        bbox=dict(boxstyle='round,pad=0.2', facecolor='#fff0f0', edgecolor='#cc9999', alpha=0.85))
+            else:
+                ymin = np.min(all_e)
+                ymax = np.max(all_e)
+                pad = 0.08 * (ymax - ymin) if ymax > ymin else 0.1
+                ax.set_ylim(ymin - pad, ymax + pad)
+
+            # Titles and y-axis labels
             if row_idx == 0:
                 ax.set_title(rf"$a = {a_val:.1f}\,d_0$, $b = {1.5*a_val:.1f}\,d_0$", fontsize=13, fontweight='bold')
             if col_idx == 0:
                 ax.set_ylabel(rf"{mode}" + "\n" + r"$E(\mathbf{k}) / t_0$", fontsize=12, fontweight='bold')
+            else:
+                ax.set_ylabel(r"$E(\mathbf{k}) / t_0$", fontsize=10)
 
             # Annotation of max difference
             ax.text(0.04, 0.92, f"Max $\\Delta E = {res['max_diff']:.4f}\\,t_0$\nMean $\\Delta E = {res['mean_diff']:.4f}\\,t_0$",
-                    transform=ax.transAxes, fontsize=10, verticalalignment='top',
-                    bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.85, edgecolor='#aaaaaa'))
+                    transform=ax.transAxes, fontsize=9.5, verticalalignment='top',
+                    bbox=dict(boxstyle='round,pad=0.25', facecolor='white', alpha=0.85, edgecolor='#aaaaaa'))
 
     axes[0, 0].legend(loc='lower left', fontsize=9, framealpha=0.9)
 
