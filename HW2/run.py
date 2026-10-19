@@ -186,125 +186,165 @@ def solve_square_mesh(a_val, KX, KY, mode='Full'):
 # Solvers: Rectangular Lattice (Crystal B - 3x3)
 # ==============================================================================
 
-def solve_rectangular_point(kx, ky, a_val, b_val, params_b, mode='Full'):
-    """Evaluates 3x3 M = eps_bar + t_bar @ inv(eta_bar) at a single (kx, ky)."""
+def solve_rectangular_point(kx, ky, a_val, b_val, p, mode='Full'):
+    """
+    Evaluates 3x3 M = eps_bar + t_bar @ inv(eta_bar) at a single (kx, ky)
+    in strict mathematical parity with solution_draft_2.md.
+    """
     inc_nn = (mode in ('Full', 'No Overlap', 'NN only'))
     inc_nnn = (mode in ('Full', 'No Overlap', 'NNN only'))
     neglect_overlap = (mode == 'No Overlap')
 
-    t_a, eta_a, t_b, eta_b, t_ab, eta_ab, t_inter, eta_inter, eps_bar, I3 = params_b
+    t_k = np.zeros((3, 3), dtype=complex)
+    eta_k = p['I3'].copy() if not neglect_overlap else None
 
+    # Intra-sublattice (1,1), (2,2), (1,2), (3,3)
     cos_ax = np.cos(kx * a_val)
     cos_by = np.cos(ky * b_val)
     cos_diag = np.cos(kx * a_val) * np.cos(ky * b_val)
-    cos_inter = 4.0 * np.cos(0.5 * kx * a_val) * np.cos(0.5 * ky * b_val)
 
-    t_k = np.zeros((3, 3), dtype=float)
-    eta_k = I3.copy() if not neglect_overlap else None
-
-    # Intra-sublattice (1,1), (2,2), (1,2)
-    term_t_11 = (2*t_a[0,0]*cos_ax + 2*t_b[0,0]*cos_by if inc_nn else 0.0) + (4*t_ab[0,0]*cos_diag if inc_nnn else 0.0)
-    term_t_22 = (2*t_a[1,1]*cos_ax + 2*t_b[1,1]*cos_by if inc_nn else 0.0) + (4*t_ab[1,1]*cos_diag if inc_nnn else 0.0)
-    term_t_12 = (2*t_a[0,1]*cos_ax + 2*t_b[0,1]*cos_by if inc_nn else 0.0) + (4*t_ab[0,1]*cos_diag if inc_nnn else 0.0)
+    term_t_11 = (2*p['t_a'][0,0]*cos_ax + 2*p['t_b'][0,0]*cos_by if inc_nn else 0.0) + (4*p['t_ab'][0,0]*cos_diag if inc_nnn else 0.0)
+    term_t_22 = (2*p['t_a'][1,1]*cos_ax + 2*p['t_b'][1,1]*cos_by if inc_nn else 0.0) + (4*p['t_ab'][1,1]*cos_diag if inc_nnn else 0.0)
+    term_t_12 = (2*p['t_a'][0,1]*cos_ax + 2*p['t_b'][0,1]*cos_by if inc_nn else 0.0) + (4*p['t_ab'][0,1]*cos_diag if inc_nnn else 0.0)
 
     t_k[0, 0] = term_t_11
     t_k[1, 1] = term_t_22
-    t_k[0, 1] = t_k[1, 0] = term_t_12
+    t_k[0, 1] = term_t_12
+    t_k[1, 0] = term_t_12
     t_k[2, 2] = term_t_11
 
     if not neglect_overlap:
-        term_eta_11 = (2*eta_a[0,0]*cos_ax + 2*eta_b[0,0]*cos_by if inc_nn else 0.0) + (4*eta_ab[0,0]*cos_diag if inc_nnn else 0.0)
-        term_eta_22 = (2*eta_a[1,1]*cos_ax + 2*eta_b[1,1]*cos_by if inc_nn else 0.0) + (4*eta_ab[1,1]*cos_diag if inc_nnn else 0.0)
-        term_eta_12 = (2*eta_a[0,1]*cos_ax + 2*eta_b[0,1]*cos_by if inc_nn else 0.0) + (4*eta_ab[0,1]*cos_diag if inc_nnn else 0.0)
+        term_eta_11 = (2*p['eta_a'][0,0]*cos_ax + 2*p['eta_b'][0,0]*cos_by if inc_nn else 0.0) + (4*p['eta_ab'][0,0]*cos_diag if inc_nnn else 0.0)
+        term_eta_22 = (2*p['eta_a'][1,1]*cos_ax + 2*p['eta_b'][1,1]*cos_by if inc_nn else 0.0) + (4*p['eta_ab'][1,1]*cos_diag if inc_nnn else 0.0)
+        term_eta_12 = (2*p['eta_a'][0,1]*cos_ax + 2*p['eta_b'][0,1]*cos_by if inc_nn else 0.0) + (4*p['eta_ab'][0,1]*cos_diag if inc_nnn else 0.0)
 
         eta_k[0, 0] += term_eta_11
         eta_k[1, 1] += term_eta_22
-        eta_k[0, 1] = eta_k[1, 0] = term_eta_12
-        eta_k[2, 2] = eta_k[0, 0]
+        eta_k[0, 1] += term_eta_12
+        eta_k[1, 0] += term_eta_12
+        eta_k[2, 2] += term_eta_11
 
-    # Inter-sublattice (1,3), (2,3)
-    if inc_nn:
-        t_k[0, 2] = t_k[2, 0] = t_inter[0, 0] * cos_inter
-        t_k[1, 2] = t_k[2, 1] = t_inter[0, 1] * cos_inter
-        if not neglect_overlap:
-            eta_k[0, 2] = eta_k[2, 0] = eta_inter[0, 0] * cos_inter
-            eta_k[1, 2] = eta_k[2, 1] = eta_inter[0, 1] * cos_inter
+    # Inter-sublattice terms (1,3) and (2,3):
+    # (1) Nearest-Neighbor contribution: 4 center atoms at R = 0.5*sqrt(a^2 + b^2)
+    ph_nn = (1.0 + np.exp(-1j * a_val * kx)) * (1.0 + np.exp(-1j * b_val * ky))
+    t_13_1 = p['t_d0'][0, 0] * ph_nn
+    t_23_1 = p['t_d0'][0, 1] * ph_nn
+
+    # (2) Next-Nearest-Neighbor contribution: 8 atoms (4 along x, 4 along y)
+    ph_x = (np.exp(1j * a_val * kx) + np.exp(-2j * a_val * kx)) * (1.0 + np.exp(-1j * b_val * ky))
+    ph_y = (1.0 + np.exp(-1j * a_val * kx)) * (np.exp(1j * b_val * ky) + np.exp(-2j * b_val * ky))
+
+    t_13_2 = p['t_d2'][0, 0] * ph_x + p['t_d1'][0, 0] * ph_y
+    t_23_2 = p['t_d2'][0, 1] * ph_x + p['t_d1'][0, 1] * ph_y
+
+    t_13_tot = (t_13_1 if inc_nn else 0.0) + (t_13_2 if inc_nnn else 0.0)
+    t_23_tot = (t_23_1 if inc_nn else 0.0) + (t_23_2 if inc_nnn else 0.0)
+
+    t_k[0, 2] = t_13_tot
+    t_k[2, 0] = np.conj(t_13_tot)
+    t_k[1, 2] = t_23_tot
+    t_k[2, 1] = np.conj(t_23_tot)
+
+    if not neglect_overlap:
+        eta_13_1 = p['eta_d0'][0, 0] * ph_nn
+        eta_23_1 = p['eta_d0'][0, 1] * ph_nn
+
+        eta_13_2 = p['eta_d2'][0, 0] * ph_x + p['eta_d1'][0, 0] * ph_y
+        eta_23_2 = p['eta_d2'][0, 1] * ph_x + p['eta_d1'][0, 1] * ph_y
+
+        eta_13_tot = (eta_13_1 if inc_nn else 0.0) + (eta_13_2 if inc_nnn else 0.0)
+        eta_23_tot = (eta_23_1 if inc_nn else 0.0) + (eta_23_2 if inc_nnn else 0.0)
+
+        eta_k[0, 2] = eta_13_tot
+        eta_k[2, 0] = np.conj(eta_13_tot)
+        eta_k[1, 2] = eta_23_tot
+        eta_k[2, 1] = np.conj(eta_23_tot)
 
     if neglect_overlap:
-        M = eps_bar + t_k
+        M = p['eps_bar'] + t_k
     else:
-        M = eps_bar + t_k @ np.linalg.inv(eta_k)
+        M = p['eps_bar'] + t_k @ np.linalg.inv(eta_k)
 
     evals = np.linalg.eigvals(M)
     return np.sort(np.real(evals))
 
-def get_rectangular_params(a_val, b_val):
+def get_rectangular_params(a_val, b_val, d0=D0, t0=T0):
+    """
+    Precomputes hopping and overlap matrices for shells in Crystal B per solution_draft_2.md:
+      Intra-sublattice: a, b, sqrt(a^2 + b^2)
+      Inter-sublattice:
+        NN:  0.5 * sqrt(a^2 + b^2)
+        NNN: 0.5 * sqrt(9a^2 + b^2) [along x], 0.5 * sqrt(a^2 + 9b^2) [along y]
+    """
     R_a = a_val
     R_b = b_val
     R_ab = np.sqrt(a_val**2 + b_val**2)
-    R_inter = 0.5 * R_ab
-    return (
-        calc_t_matrix(R_a, d0=D0, t0=T0),
-        calc_eta_matrix(R_a, d0=D0),
-        calc_t_matrix(R_b, d0=D0, t0=T0),
-        calc_eta_matrix(R_b, d0=D0),
-        calc_t_matrix(R_ab, d0=D0, t0=T0),
-        calc_eta_matrix(R_ab, d0=D0),
-        calc_t_matrix(R_inter, d0=D0, t0=T0),
-        calc_eta_matrix(R_inter, d0=D0),
-        np.diag([0.0, 0.8 * T0, 0.0]),
-        np.eye(3, dtype=float)
-    )
+    d_0 = 0.5 * np.sqrt(a_val**2 + b_val**2)
+    d_1 = 0.5 * np.sqrt(a_val**2 + 9.0 * b_val**2)
+    d_2 = 0.5 * np.sqrt(9.0 * a_val**2 + b_val**2)
+
+    return {
+        't_a': calc_t_matrix(R_a, d0=d0, t0=t0),
+        'eta_a': calc_eta_matrix(R_a, d0=d0),
+        't_b': calc_t_matrix(R_b, d0=d0, t0=t0),
+        'eta_b': calc_eta_matrix(R_b, d0=d0),
+        't_ab': calc_t_matrix(R_ab, d0=d0, t0=t0),
+        'eta_ab': calc_eta_matrix(R_ab, d0=d0),
+        't_d0': calc_t_matrix(d_0, d0=d0, t0=t0),
+        'eta_d0': calc_eta_matrix(d_0, d0=d0),
+        't_d1': calc_t_matrix(d_1, d0=d0, t0=t0),
+        'eta_d1': calc_eta_matrix(d_1, d0=d0),
+        't_d2': calc_t_matrix(d_2, d0=d0, t0=t0),
+        'eta_d2': calc_eta_matrix(d_2, d0=d0),
+        'eps_bar': np.diag([0.0, 0.8 * t0, 0.0]),
+        'I3': np.eye(3, dtype=complex)
+    }
 
 def solve_rectangular_path(a_val, b_val, k_path, mode='Full'):
-    params_b = get_rectangular_params(a_val, b_val)
+    p = get_rectangular_params(a_val, b_val)
     num_pts = len(k_path)
     energies = np.zeros((num_pts, 3), dtype=float)
     for i in range(num_pts):
-        energies[i] = solve_rectangular_point(k_path[i, 0], k_path[i, 1], a_val, b_val, params_b, mode=mode)
+        energies[i] = solve_rectangular_point(k_path[i, 0], k_path[i, 1], a_val, b_val, p, mode=mode)
     return energies
 
 solve_rectangular_lattice = solve_rectangular_path
 
 def solve_rectangular_mesh(a_val, b_val, KX, KY, mode='Full'):
-    params_b = get_rectangular_params(a_val, b_val)
+    p = get_rectangular_params(a_val, b_val)
     E1 = np.zeros_like(KX)
     E2 = np.zeros_like(KX)
     E3 = np.zeros_like(KX)
     rows, cols = KX.shape
     for r in range(rows):
         for c in range(cols):
-            ev = solve_rectangular_point(KX[r, c], KY[r, c], a_val, b_val, params_b, mode=mode)
+            ev = solve_rectangular_point(KX[r, c], KY[r, c], a_val, b_val, p, mode=mode)
             E1[r, c] = ev[0]
             E2[r, c] = ev[1]
             E3[r, c] = ev[2]
     return E1, E2, E3
-
 # ==============================================================================
 # Interactive GUI Application
 # ==============================================================================
 
-MODES = ['Full', 'No Overlap', 'NN only', 'NNN only']
+MODES = ['Full', 'No Overlap', 'NN only']
 CHECK_LABELS = [
     'Full (NN + NNN + Overlap)',
     'No Overlap (S = I)',
-    'NN only (Neglect NNN)',
-    'NNN only (Neglect NN)'
+    'NN only (Neglect NNN)'
 ]
 MODE_MAP = dict(zip(CHECK_LABELS, MODES))
 
 MODE_STYLES = {
     'Full':       {'color': '#1f77b4', 'ls': '-',  'lw': 2.2, 'label': 'Full (NN + NNN + Overlap)'},
     'No Overlap': {'color': '#d62728', 'ls': '--', 'lw': 2.0, 'label': 'Neglecting Overlap (S = I)'},
-    'NN only':    {'color': '#2ca02c', 'ls': '-.', 'lw': 2.0, 'label': 'Neglecting NNN (NN only)'},
-    'NNN only':   {'color': '#9467bd', 'ls': ':',  'lw': 2.2, 'label': 'Neglecting NN (NNN only)'}
+    'NN only':    {'color': '#2ca02c', 'ls': '-.', 'lw': 2.0, 'label': 'Neglecting NNN (NN only)'}
 }
 
 SURF_CMAPS = {
     'Full': 'Blues_r',
     'No Overlap': 'Reds_r',
-    'NN only': 'Greens_r',
-    'NNN only': 'Purples_r'
+    'NN only': 'Greens_r'
 }
 
 def run_interactive():
@@ -334,14 +374,14 @@ def run_interactive():
 
     # 4. CheckBoxes: Physical Approximations
     ax_chk = fig.add_axes([0.74, 0.16, 0.24, 0.28])
-    chk_approx = CheckButtons(ax_chk, CHECK_LABELS, [True, True, False, False])
+    chk_approx = CheckButtons(ax_chk, CHECK_LABELS, [True, True, False])
     ax_chk.set_title("Approximations Included", fontsize=11, fontweight='bold', pad=8)
 
     def update(val=None):
         a_val = a_slider.val
         lat_choice = radio_lattice.value_selected
         view_choice = radio_view.value_selected
-        b_val = 1.2 * a_val
+        b_val = 1.5 * a_val
 
         # Determine checked modes
         statuses = chk_approx.get_status()
@@ -487,12 +527,12 @@ def save_fig_dual(fig, filename):
 def reproduce_all_figures():
     """Reproduces all required publication figures for HW2 across all models and lattice constants."""
     print("=" * 72)
-    print("Executing Batch Reproduction of all HW2 Figures (User Inverse-Eta Solver)")
+    print("Executing Batch Reproduction of all HW2 Figures")
     print(f"Parameters: Fixed t_0 = {T0}, d_0 = {D0}")
     print("=" * 72)
 
     a_values = [5.0, 7.0, 9.0]
-    b_ratio = 1.2
+    b_ratio = 1.5
 
     # --- 1. Square Lattice Figures ---
     print("\n[1/2] Processing Square Lattice (Crystal A)...")
@@ -500,36 +540,34 @@ def reproduce_all_figures():
 
     # Individual 3-panel plots for each mode across a in {5, 7, 9}
     for mode in MODES:
-        fig, axes = plt.subplots(1, 3, figsize=(16, 5), sharey=(mode not in ('Full', 'NN only')))
+        fig, axes = plt.subplots(1, 3, figsize=(18, 5.2), sharey=False)
         for idx, a_val in enumerate(a_values):
             ax = axes[idx]
             energies = solve_square_path(a_val, path_ka, mode=mode)
-            ax.plot(path_x, energies[:, 0], 'b-', lw=2.2, label=r'$E_1(\vec{k})$ (Lower band)')
-            ax.plot(path_x, energies[:, 1], 'r-', lw=2.2, label=r'$E_2(\vec{k})$ (Upper band)')
+            ax.plot(path_x, energies[:, 0], 'b-', lw=2.2)
+            ax.plot(path_x, energies[:, 1], 'r-', lw=2.2)
 
-            ax.axhline(0.0, color='blue', linestyle=':', alpha=0.4, label=r'$\epsilon_1 = 0$')
-            ax.axhline(0.8, color='red', linestyle=':', alpha=0.4, label=r'$\epsilon_2 = 0.8\,t_0$')
+            ax.axhline(0.0, color='blue', linestyle=':', alpha=0.4)
+            ax.axhline(0.8, color='red', linestyle=':', alpha=0.4)
 
             for t in tick_locs:
                 ax.axvline(t, color='gray', linestyle='--', alpha=0.5)
 
             ax.set_xticks(tick_locs)
             ax.set_xticklabels(tick_labels, fontsize=12)
-            ax.set_title(rf'$a = {a_val:.1f}\,d_0$', fontsize=13, fontweight='bold')
+            ax.set_title(rf'$a = {a_val:.1f}\,d_0$', fontsize=12, fontweight='bold')
             ax.set_xlabel(r'Wavevector $\vec{k}$ Path', fontsize=11)
             if idx == 0:
                 ax.set_ylabel(r'Energy ($E / t_0$)', fontsize=12)
             ax.grid(alpha=0.3)
-            ax.legend(loc='upper right', fontsize=9)
 
-            if a_val == 5.0 and mode in ('Full', 'NN only', 'NNN only'):
-                ax.set_ylim(-40, 270)
-            elif a_val >= 7.0:
-                ax.set_ylim(-0.3, 1.6)
+            if mode in ('Full', 'NN only') and (a_val == 5.0 or (a_val == 7.0 and mode == 'NN only')):
+                ax.set_ylim(-15, 25)
+            else:
+                ax.set_ylim(-0.8, 1.8)
 
         mode_slug = mode.lower().replace(' ', '_').replace('+', 'and')
-        fig.suptitle(f'Square Lattice Band Structure: {mode} Model (User Formulation: $M = \\bar{{\\epsilon}} + \\bar{{t}}\\bar{{\\eta}}^{{-1}}$)',
-                     fontsize=14, fontweight='bold', y=1.02)
+        fig.suptitle(f'Crystal A: {mode}', fontsize=14, fontweight='bold', y=1.02)
         save_fig_dual(fig, f'square_lattice_{mode_slug}_bands.png')
         if mode == 'Full':
             save_fig_dual(fig, 'band_structures_part1.png')
@@ -604,7 +642,7 @@ def reproduce_all_figures():
         if idx == 1:
             ax.legend(loc='upper right', fontsize=9, framealpha=0.9)
 
-    fig.suptitle('Square Lattice: Comparison of Physical Approximations across Lattice Parameters\n(User Formulation: $M = \\bar{\\epsilon} + \\bar{t}\\bar{\\eta}^{-1}$)',
+    fig.suptitle('Crystal A: Comparison of Physical Approximations across Lattice Parameters',
                  fontsize=14, fontweight='bold', y=1.03)
     save_fig_dual(fig, 'square_lattice_comparisons_all_a.png')
     plt.close(fig)
@@ -619,12 +657,12 @@ def reproduce_all_figures():
             k_path, path_x, tick_locs, tick_labels = build_rectangular_bz_path(a_val, b_val, num_seg=150)
             energies = solve_rectangular_path(a_val, b_val, k_path, mode=mode)
 
-            ax.plot(path_x, energies[:, 0], 'b-', lw=2.2, label=r'$E_1(\vec{k})$ (Lower band)')
-            ax.plot(path_x, energies[:, 1], 'g-', lw=2.2, label=r'$E_2(\vec{k})$ (Middle band)')
-            ax.plot(path_x, energies[:, 2], 'r-', lw=2.2, label=r'$E_3(\vec{k})$ (Upper band)')
+            ax.plot(path_x, energies[:, 0], 'b-', lw=2.2)
+            ax.plot(path_x, energies[:, 1], 'g-', lw=2.2)
+            ax.plot(path_x, energies[:, 2], 'r-', lw=2.2)
 
-            ax.axhline(0.0, color='blue', linestyle=':', alpha=0.4, label=r'$\epsilon_1 = \epsilon_3 = 0$')
-            ax.axhline(0.8, color='red', linestyle=':', alpha=0.4, label=r'$\epsilon_2 = 0.8\,t_0$')
+            ax.axhline(0.0, color='blue', linestyle=':', alpha=0.4)
+            ax.axhline(0.8, color='red', linestyle=':', alpha=0.4)
 
             for t in tick_locs:
                 ax.axvline(t, color='gray', linestyle='--', alpha=0.5)
@@ -636,18 +674,14 @@ def reproduce_all_figures():
             if idx == 0:
                 ax.set_ylabel(r'Energy ($E / t_0$)', fontsize=12)
             ax.grid(alpha=0.3)
-            ax.legend(loc='upper right', fontsize=8.5)
 
-            if a_val == 5.0 and mode in ('Full', 'NN only'):
-                ax.set_ylim(-35, 45)
-            elif a_val == 7.0:
-                ax.set_ylim(-0.8, 1.8)
+            if mode in ('Full', 'NN only') and a_val == 5.0:
+                ax.set_ylim(-15, 25)
             else:
-                ax.set_ylim(-0.3, 1.0)
+                ax.set_ylim(-0.8, 1.8)
 
         mode_slug = mode.lower().replace(' ', '_').replace('+', 'and')
-        fig.suptitle(f'Crystal B (Centered Rectangular) Band Structure: {mode} Model\n(User Formulation: $M = \\bar{{\\epsilon}} + \\bar{{t}}\\bar{{\\eta}}^{{-1}}$)',
-                     fontsize=14, fontweight='bold', y=1.04)
+        fig.suptitle(f'Crystal B: {mode}', fontsize=14, fontweight='bold', y=1.02)
         save_fig_dual(fig, f'rectangular_lattice_{mode_slug}_bands.png')
         if mode == 'Full':
             save_fig_dual(fig, 'band_structures_lattice_b.png')
@@ -730,7 +764,7 @@ def reproduce_all_figures():
         if idx == 1:
             ax.legend(loc='upper right', fontsize=8.5, framealpha=0.9)
 
-    fig.suptitle('Crystal B (Centered Rectangular): Comparison of Physical Approximations\n(User Formulation: $M = \\bar{\\epsilon} + \\bar{t}\\bar{\\eta}^{-1}$)',
+    fig.suptitle('Crystal B: Comparison of Physical Approximations across Lattice Parameters',
                  fontsize=14, fontweight='bold', y=1.03)
     save_fig_dual(fig, 'rectangular_lattice_comparisons_all_a.png')
     plt.close(fig)
