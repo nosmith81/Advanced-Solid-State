@@ -1,1 +1,0 @@
-HW2/Lattice_B.py
